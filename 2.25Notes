@@ -1,0 +1,10 @@
+Considerations:
+- Training Data Improvements
+  - Data is currently only focused to classify into hurricane, earthquake, and wildfire, meaning there is no capacity to classify as non disaster
+    - Current Solution Plan: Use Sentiment140 Dataset with positive sentiment tweets. Assumption here is that highly positive tweets will be less likely to contain disaster reporting information
+  - Data is also not focused on disaster reporting. I think it would be usedful to generate new data (to add into current set) that simulates user tweets assuming a disaster is occurring by them
+    - Approximately 500 tweets (1/6 of final counts) each could be a good solution. It seems that earthquake is the weakest category as of now, so including vocabulary like shaking, aftershock, magnitude, etc could be useful
+- NER
+  - I will also implement NER for location recognition on top of this. It could be set up in the pipeline before or after disaster classification. There are advantages to both
+    1. Setting it up before could also allow us to remvove location data from the tweet. I'm assuming (haven't tested yet) that the location data could have an impact on predictions. Mentioning Canada in a tweet could cause the model to believe that it is automatically a wildfire (wildfire training data was from Greece and Canada). We may be able to train this tendency out with our additional data if we make it very diverse and always mention location
+    2. Setting it up after could save computational resources. I believe that this isn't necessary due to current training speeds, but it is a consideration. We could set it up so that it only checks for location data after a tweet is designated as some sort of disaster rather than checking every tweet.
