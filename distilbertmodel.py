@@ -8,35 +8,50 @@ Original file is located at
 """
 
 from google.colab import drive
-drive.mount('/content/drive')
-
 import os
 import torch
 from torch.utils.data import DataLoader
+from transformers import DistilBertForSequenceClassification, AdamW
+from transformers import get_scheduler
+from collections import Counter
 
-# define dataset paths (make sure they exist in Google Drive)
-baseDir = "/content/drive/MyDrive/Model Development/ProcessedTensors/"
-trainPath = os.path.join(baseDir, "ecuador_earthquake_2016_processed_train.pt")  # change this if using another dataset
-valPath = os.path.join(baseDir, "ecuador_earthquake_2016_processed_val.pt")
+# mount google drive
+drive.mount('/content/drive')
 
-# load the datasets
-trainData = torch.load(trainPath)
-valData = torch.load(valPath)
+# define dataset paths
+baseDir = "/content/drive/MyDrive/Model Development/FinalTensors/"
+balancedDatasetPath = os.path.join(baseDir, "balanced_all_disasters.pt")
+
+# load the balanced dataset
+trainData = torch.load(balancedDatasetPath)
 
 # define batch size
-batch_size = 16  # adjust this based on your GPU memory
+batch_size = 16  # adjust based on GPU memory
 
-# create DataLoaders for training & validation
+# create DataLoader for training, enable shuffling
 trainLoader = DataLoader(trainData, batch_size=batch_size, shuffle=True)
-valLoader = DataLoader(valData, batch_size=batch_size, shuffle=False)
 
-# print dataset sizes
-print(f"Training Batches: {len(trainLoader)}, Validation Batches: {len(valLoader)}")
+# print dataset size and number of batches
+print(f"Total Training Samples: {len(trainData)}")
+print(f"Total Training Batches: {len(trainLoader)}")
 
-from transformers import DistilBertForSequenceClassification
+# count and print the number of samples per label (assuming labels are stored in trainData.tensors[2])
+label_list = trainData.tensors[2].tolist()
+counts = Counter(label_list)
+print("\nTraining Data Label Counts:")
+for label, count in counts.items():
+    if label == 0:
+        label_name = "wildfire"
+    elif label == 1:
+        label_name = "hurricane"
+    elif label == 2:
+        label_name = "earthquake"
+    else:
+        label_name = "unknown"
+    print(f"{label_name}: {count}")
 
-# define number of classes (adjust if needed)
-num_labels = 2  # change this if you have more classes
+# define number of classes (3 disaster categories: Wildfire, Hurricane, Earthquake)
+num_labels = 3
 
 # load DistilBERT with a classification head
 model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=num_labels)
@@ -45,14 +60,54 @@ model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-unc
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-print("Model loaded and moved to:", device)
-
-import torch
-
-# check if GPU is available
+print("\nModel loaded and moved to:", device)
 if torch.cuda.is_available():
-    device = torch.device("cuda")
-    model.to(device)
-    print("Model moved to GPU:", torch.cuda.get_device_name(0))
+    print("Using GPU:", torch.cuda.get_device_name(0))
 else:
     print("No GPU found, training will be on CPU.")
+
+# define optimizer and learning rate scheduler
+optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8)
+num_training_steps = len(trainLoader) * 3  # Assuming 3 epochs
+lr_scheduler = get_scheduler("linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+
+# define loss function (CrossEntropyLoss for multi-class classification)
+loss_fn = torch.nn.CrossEntropyLoss()
+
+# training loop
+epochs = 3
+for epoch in range(epochs):
+    model.train()
+    total_loss = 0
+
+    for batch in trainLoader:
+        # unpack batch and move to GPU
+        input_ids, attention_mask, labels = [t.to(device) for t in batch]
+
+        # forward pass
+        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+        loss = outputs.loss
+
+        # backpropagation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        lr_scheduler.step()
+
+        total_loss += loss.item()
+
+    avg_loss = total_loss / len(trainLoader)
+    print(f"Epoch {epoch+1}: Training Loss = {avg_loss:.4f}")
+
+# ensure the output directory exists
+output_model_dir = "/content/drive/MyDrive/Model Development/TrainedModels"
+os.makedirs(output_model_dir, exist_ok=True)
+
+# move model to CPU before saving
+model.cpu()
+output_model_path = os.path.join(output_model_dir, "disaster_classifier.pt")
+torch.save(model.state_dict(), output_model_path)
+print(f"Model saved successfully to {output_model_path}")
+
+# move back to GPU if needed
+model.to(device)
