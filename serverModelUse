@@ -1,0 +1,70 @@
+import torch
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+import json
+
+# mount drive (for current use)
+from google.colab import drive
+drive.mount('/content/drive')
+
+# define path
+path = "/content/drive/MyDrive/models/disaster_classifierV2"  # adjust to whatever path is used in hosting service
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# load tokenizer and trained model
+tokenizer = DistilBertTokenizer.from_pretrained(path)
+model = DistilBertForSequenceClassification.from_pretrained(path)
+model.to(device)
+model.eval()
+
+# tokenize text for processing
+def preprocess_text(text):
+    return tokenizer(text, truncation=True, padding=True, max_length=512, return_tensors="pt").to(device)
+
+# classify tweet and return confidence scores
+def classify_tweet(text):
+    inputs = preprocess_text(text)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    logits = outputs.logits[0].cpu().numpy()
+
+    # convert logits to probabilities using softmax
+    probabilities = torch.nn.functional.softmax(torch.tensor(logits), dim=-1).numpy()
+
+    # get predicted category
+    predicted_class = torch.argmax(torch.tensor(probabilities)).item()
+    
+    return predicted_class, probabilities.tolist()
+
+# process data (parse JSON, extract tweets, classify them)
+def process_server_data(json_data):
+    results = []
+    feed = json_data.get("feed", [])
+
+    for post_data in feed:
+        post = post_data.get("post", {})
+        text = post.get("record", {}).get("text", "")
+
+        if text:  # ensure the text is not empty
+            category, confidence_scores = classify_tweet(text)
+            results.append({
+                "text": text,
+                "predicted_category": category,
+                "confidence_scores": confidence_scores
+            })
+
+    return results
+
+# replace with actual data pulled from the server
+'''server_json = '''
+
+# process JSON data
+'''parsed_data = json.loads(server_json)''' # needs to be adjusted once data is actually taken in
+classification_results = process_server_data(parsed_data)
+
+# print results
+for result in classification_results:
+    print(f"Tweet: {result['text']}")
+    print(f"Predicted Category: {result['predicted_category']}")
+    print(f"Confidence Scores: {result['confidence_scores']}")
+    print("-" * 50)
