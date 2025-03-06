@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 drive.mount('/content/drive')
 
 # define paths
-model_path = "/content/drive/MyDrive/Model Development/TrainedModels/disaster_classifierV2.pt"  # ✅ V2 Model
+model_path = "/content/drive/MyDrive/Model Development/TrainedModels/disaster_classifierV2.pt"  # V2 Model
 tokenizer_name = "distilbert-base-uncased"
 
 # load tokenizer and model
@@ -16,7 +16,7 @@ tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # load trained model (updated for 4 classes)
-model = DistilBertForSequenceClassification.from_pretrained(tokenizer_name, num_labels=4)  # ✅ Now handling 4 categories
+model = DistilBertForSequenceClassification.from_pretrained(tokenizer_name, num_labels=4)  # Now handling 4 categories
 model.load_state_dict(torch.load(model_path, map_location=device))
 model.to(device)
 model.eval()
