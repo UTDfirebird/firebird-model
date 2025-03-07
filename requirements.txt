@@ -21,6 +21,7 @@ cycler==0.12.1
 distlib==0.3.4
 Django==4.0.4
 EditorConfig==0.12.4
+fastapi==0.70.0
 ffmpeg-python==0.2.0
 filelock==3.6.0
 fire==0.6.0
