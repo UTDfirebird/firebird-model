@@ -122,6 +122,7 @@ typing_extensions==4.5.0
 tzdata==2024.1
 ucimlrepo==0.0.7
 unicorn==2.1.1
+uvicorn==0.15.0
 unidic-lite==1.0.8
 unix-ar==0.2.1
 urllib3==1.26.10
