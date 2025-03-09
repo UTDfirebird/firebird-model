@@ -1,14 +1,9 @@
 from typing import Union
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 #import serverModelUse
 import json
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
 
 app = FastAPI()
 
@@ -35,14 +30,6 @@ async def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 '''
 @app.post("/tweets/")
-@app.post("/tweets")
-async def create_tweets(request: Request):
-    raw_body = await request.body()
-    print(f"Raw body: {raw_body.decode('utf-8', errors='ignore')}")
-    print(f"Headers: {dict(request.headers)}")
-    try:
-        import json
-        parsed_data = json.loads(raw_body)
-        return parsed_data
-    except Exception as e:
-        return {"error": str(e)}
+async def create_tweets(parsedData: dict):
+    return parsedData
+    #return serverModelUse.process_server_data(parsedData)
