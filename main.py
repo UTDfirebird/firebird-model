@@ -1,13 +1,15 @@
 from typing import Union
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from schema import Tweets
-from pydantic import ValidationError
+from pydantic import BaseModel
 #import serverModelUse
 import json
 
 app = FastAPI()
+
+class Tweet(BaseModel):
+    key: str
 
 # Add CORS middleware
 app.add_middleware(
@@ -28,17 +30,7 @@ async def read_root():
 async def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 '''
-@app.get("/tweets/", include_in_schema=False)
-async def redirect_tweets(request: Request):
-    scheme = request.headers.get("X-Forwarded-Proto", "https")
-    new_location = f"{scheme}://{request.headers.get('Host')}/tweets"
-    return RedirectResponse(url=new_location, status_code=307)
-
 @app.post("/tweets")
-async def create_tweets(parsedData: dict, request: Request):
-    print(f"X-Forwarded-Proto: {request.headers.get('X-Forwarded-Proto')}")
+async def create_tweets(parsedData: Tweet):
     return parsedData
-
-@app.post("/tweets/")
-async def create_tweets_with_slash(parsedData: dict, request: Request):
-    return await create_tweets(parsedData)
+    #return serverModelUse.process_server_data(parsedData)
