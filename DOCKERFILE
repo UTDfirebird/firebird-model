@@ -7,7 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy in the source code
 COPY main.py ./
-COPY schema.py ./
 COPY serverModelUse.py ./
 EXPOSE 8080
 
