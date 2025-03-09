@@ -10,6 +10,9 @@ COPY main.py ./
 COPY serverModelUse.py ./
 EXPOSE 8080
 
+# Install wget and curl for downloading
+RUN apt-get update && apt-get install -y wget curl
+
 # Download the model file from Google Drive (handle large file confirmation)
 RUN mkdir -p model && \
     FILE_ID="YOUR_FILE_ID" && \
