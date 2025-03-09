@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y wget curl
 
 # Download the model file from Google Drive (handle large file confirmation)
 RUN mkdir -p model && \
-    FILE_ID="YOUR_FILE_ID" && \
-    CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate "https://drive.google.com/uc?export=download&id=1FhJ5XgpEOd-ZWmwRIiW8vh8ItOIsSUnZ" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p') && \
-    wget --load-cookies /tmp/cookies.txt "https://drive.google.com/uc?export=download&id=1FhJ5XgpEOd-ZWmwRIiW8vh8ItOIsSUnZ" -O model/disaster_classifierV2.pt && \
+    FILE_ID="1FhJ5XgpEOd-ZWmwRIiW8vh8ItOIsSUnZ" && \
+    CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p') && \
+    wget --load-cookies /tmp/cookies.txt "https://drive.google.com/uc?export=download&confirm=${CONFIRM}&id=${FILE_ID}" -O model/disaster_classifierV2.pt && \
     rm -rf /tmp/cookies.txt
 
 # Setup an app user so the container doesn't run as the root user
