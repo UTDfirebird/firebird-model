@@ -27,7 +27,7 @@ async def read_root():
 async def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 '''
-@app.post("/tweets/")
+@app.post("/tweets")
 async def create_tweets(parsedData: dict):
     return parsedData
     #return serverModelUse.process_server_data(parsedData)
