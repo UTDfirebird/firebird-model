@@ -1,31 +1,23 @@
 import torch
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, AutoTokenizer
 import json
 
-# fake example data
-parsed_data = {
-    "12345": "Breaking: Major earthquake in California!",
-    "67890": "Just a normal sunny day at the beach.",
-}
+# define paths
+path = "model/disaster_classifierV2.pt"  # V2 Model
+tokenizer_name = "distilbert-base-uncased"
 
-# mount drive (for current use)
-from google.colab import drive
-drive.mount('/content/drive')
-
-# define path
-path = "/content/drive/MyDrive/models/disaster_classifierV2"  # adjust to whatever path is used in hosting service
-
+# load tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# load tokenizer and trained model
-try:
-    tokenizer = DistilBertTokenizer.from_pretrained(path)
-    model = DistilBertForSequenceClassification.from_pretrained(path)
-    model.to(device)
-    model.eval()
-except Exception as e:
-    print(f"Error loading model/tokenizer: {e}")
-    exit()
+# load trained model (updated for 4 classes)
+model = DistilBertForSequenceClassification.from_pretrained(tokenizer_name, num_labels=4)  # Now handling 4 categories
+model.load_state_dict(torch.load(path, map_location=device))
+model.to(device)
+model.eval()
+
+# updated class labels (now includes non-disaster)
+class_labels = ["wildfire", "hurricane", "earthquake", "non-disaster"]
 
 # tokenize text for processing
 def preprocess_text(text):
@@ -56,10 +48,10 @@ def process_server_data(tweetDict):
     return results
 
 # process parsed data
-classification_results = process_server_data(parsed_data)  
+#classification_results = process_server_data(parsed_data)  
 
 # print results
-for tweetID, confidence_scores in classification_results.items():
-    print(f"Tweet ID: {tweetID}")
-    print(f"Confidence Scores: {confidence_scores}")
-    print("-" * 50)
+#for tweetID, confidence_scores in classification_results.items():
+#    print(f"Tweet ID: {tweetID}")
+#    print(f"Confidence Scores: {confidence_scores}")
+#    print("-" * 50)

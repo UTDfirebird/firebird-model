@@ -2,6 +2,8 @@ from typing import Union
 from fastapi import FastAPI
 from schema import Tweets
 from pydantic import ValidationError
+import serverModelUse
+import json
 
 app = FastAPI()
 
@@ -17,10 +19,5 @@ async def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 '''
 @app.post("/tweets/")
-async def create_tweets(tweets: Tweets):
-    try:
-        # TODO: Process the tweet data with the model (not ready yet)
-        
-        return tweets
-    except ValidationError as e:
-        return e.json()
+async def create_tweets(parsedData: dict):
+    return serverModelUse.process_server_data(parsedData)

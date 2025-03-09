@@ -74,6 +74,7 @@ pipenv==2022.4.8
 platformdirs==2.5.1
 plumbum==1.9.0
 prettytable==3.12.0
+protobuf
 psutil==6.1.1
 pwntools==4.14.0
 pycodestyle==2.8.0
@@ -87,7 +88,7 @@ pyparsing==3.1.2
 pypdf==5.1.0
 pyperclip==1.8.2
 PyQt5==5.15.10
-PyQt5-Qt5==5.15.14
+PyQt5-Qt5
 PyQt5-sip==12.13.0
 pyserial==3.5
 PySocks==1.7.1
@@ -118,7 +119,7 @@ toml==0.10.2
 torch==2.0.0
 tqdm==4.65.0
 transformers==4.41.2
-typing_extensions==4.5.0
+typing_extensions
 tzdata==2024.1
 ucimlrepo==0.0.7
 unicorn==2.1.1
