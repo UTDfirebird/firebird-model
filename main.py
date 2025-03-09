@@ -2,7 +2,7 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-#import serverModelUse
+import serverModelUse
 import json
 
 app = FastAPI()
@@ -31,5 +31,4 @@ async def read_item(item_id: int, q: Union[str, None] = None):
 '''
 @app.post("/tweets/")
 async def create_tweets(parsedData: dict):
-    return parsedData
-    #return serverModelUse.process_server_data(parsedData)
+    return serverModelUse.process_server_data(parsedData)
