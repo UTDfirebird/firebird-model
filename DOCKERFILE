@@ -11,6 +11,9 @@ COPY schema.py ./
 COPY serverModelUse.py ./
 EXPOSE 8080
 
+# Copy in the model folder
+COPY model ./model
+
 # Setup an app user so the container doesn't run as the root user
 RUN useradd app
 USER app

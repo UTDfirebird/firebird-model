@@ -8,5 +8,3 @@ __pycache__/
 # macOS-specific files
 .DS_Store
 
-# Ignore model files
-model/

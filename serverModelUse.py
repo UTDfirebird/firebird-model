@@ -1,16 +1,9 @@
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, AutoTokenizer
-import gdown
-import os
 
 # define paths
-drive_url = "https://drive.google.com/uc?id=1FhJ5XgpEOd-ZWmwRIiW8vh8ItOIsSUnZ"
 path = "model/disaster_classifierV2.pt"  # V2 Model
 tokenizer_name = "distilbert-base-uncased"
-
-# download model from Google Drive only if it doesn't exist already
-if not os.path.exists(path):
-    gdown.download(drive_url, path, quiet=False)
 
 # load tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
