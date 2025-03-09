@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from schema import Tweets
 from pydantic import ValidationError
-import serverModelUse
+#import serverModelUse
 import json
 
 app = FastAPI()
@@ -29,4 +29,5 @@ async def read_item(item_id: int, q: Union[str, None] = None):
 '''
 @app.post("/tweets/")
 async def create_tweets(parsedData: dict):
-    return serverModelUse.process_server_data(parsedData)
+    return parsedData
+    #return serverModelUse.process_server_data(parsedData)
