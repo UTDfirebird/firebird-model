@@ -1,5 +1,7 @@
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, AutoTokenizer
+import os
+os.environ["TRANSFORMERS_CACHE"] = "/tmp/.cache/huggingface/"
 
 # define paths
 path = "model/disaster_classifierV2.pt"  # V2 Model
