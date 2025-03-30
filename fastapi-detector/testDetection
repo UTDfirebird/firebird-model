@@ -1,0 +1,50 @@
+import requests
+from datetime import datetime, timedelta
+
+# adjust if FastAPI server is on a different port or host
+BASE_URL = "http://127.0.0.1:8000/location"
+
+def post_tweet(uid, lat, lon, disasterType, offset_minutes=0):
+    timestamp = (datetime.utcnow() + timedelta(minutes=offset_minutes)).isoformat()
+    payload = {
+        "uid": uid,
+        "latitude": lat,
+        "longitude": lon,
+        "timestamp": timestamp,
+        "disasterType": disasterType
+    }
+    response = requests.post(BASE_URL, json=payload)
+    try:
+        print(f"UID: {uid}, Type: {disasterType}, Response: {response.json()}")
+    except Exception as e:
+        print(f"UID: {uid}, Type: {disasterType}, Error: {e}, Raw Response: {response.text}")
+
+
+if __name__ == "__main__":
+    # simulate wildfire tweets near each other
+    lat, lon = 29.7600, -95.3690
+
+    for i in range(5):
+        post_tweet(
+            uid=f"wildfire{i+1}",
+            lat=lat + (i * 0.0002),  # slight variation in location
+            lon=lon + (i * 0.0002),
+            disasterType="wildfire",
+            offset_minutes=i  # 1-minute spacing
+        )
+
+    # one non-disaster
+    post_tweet(
+        uid="nondisaster1",
+        lat=lat + 0.001,
+        lon=lon + 0.001,
+        disasterType="non-disaster"
+    )
+
+    # far wildfire 
+    post_tweet(
+        uid="wildfire_far",
+        lat=lat + 1.0,  # far away
+        lon=lon + 1.0,
+        disasterType="wildfire"
+    )
