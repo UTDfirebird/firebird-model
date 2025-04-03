@@ -1,0 +1,16 @@
+
+# Ignore the virtual environment directory ONLY at the root level
+/venv/
+
+# Ignore the pycache directory ONLY at the root level
+/__pycache__/
+
+# Ignore macOS system file ONLY at the root level
+/.DS_Store
+
+# Optional: If 'testDetection' is a generated file/binary you want to ignore
+# ONLY at the root level, uncomment the line below.
+# /testDetection
+
+# Optional: Ignore VS Code settings directory ONLY at the root level
+# /.vscode/
