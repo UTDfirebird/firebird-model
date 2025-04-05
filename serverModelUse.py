@@ -4,7 +4,7 @@ import os
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/.cache/huggingface/"
 
 # define paths
-path = "model/disaster_classifierV2.pt"  # V2 Model
+path = "model/disaster_classifierV5.pt"  # V5 Model
 tokenizer_name = "distilbert-base-uncased"
 
 # load tokenizer and model
