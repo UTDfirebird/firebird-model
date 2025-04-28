@@ -1,98 +1,89 @@
 import os
-import pandas as pd
-import re
-import ast
 import torch
+import pandas as pd
+from transformers import DistilBertTokenizer
 from torch.utils.data import TensorDataset
-from transformers import AutoTokenizer
 from google.colab import drive
+from google.cloud import language_v1
+from google.oauth2 import service_account
+from tqdm import tqdm  # progress bar
 
-# miunt google drive
+# mount drive
 drive.mount('/content/drive')
 
-# define directories
-baseDir = "/content/drive/MyDrive/Model Development/"
-inputDir = os.path.join(baseDir, "RawTrainingTSV")
-outputDir = os.path.join(baseDir, "SelectiveTensors")
-os.makedirs(outputDir, exist_ok=True)
+# paths
+base_dir = "/content/drive/MyDrive/Model Development/Data Revamp"
+csv_dir = os.path.join(base_dir, "Usage CSVs")
+tensor_dir = os.path.join(base_dir, "Usage Tensors/LocationRemoved")
+os.makedirs(tensor_dir, exist_ok=True)
 
-# initialize the DistilBERT tokenizer
-tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+# csv paths
+train_csv_path = os.path.join(csv_dir, "train.csv")
+val_csv_path = os.path.join(csv_dir, "val.csv")
 
-# define a cleaning function for tweet text
-def clean_text(text):
-    text = str(text).lower()                              # lowercase the text
-    text = re.sub(r"http\S+|www\S+", "", text)             # demove URLs
-    text = re.sub(r"@\w+", "", text)                       # remove mentions
-    text = re.sub(r"[^a-zA-Z0-9\s]", "", text)             # remove punctuation
-    text = re.sub(r"\s+", " ", text).strip()               # remove extra spaces
+# gcp setup
+creds_path = "/content/drive/MyDrive/Model Development/nlpCredential.json"
+credentials = service_account.Credentials.from_service_account_file(creds_path)
+nlp_client = language_v1.LanguageServiceClient(credentials=credentials)
+
+# tokenizer
+tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
+
+# labels
+label_map = {"wildfire": 0, "hurricane": 1, "earthquake": 2, "non-disaster": 3}
+
+def remove_location_entities(text):
+    """Remove location-type entities from text using GCP NLP"""
+    try:
+        document = language_v1.Document(content=text, type_=language_v1.Document.Type.PLAIN_TEXT)
+        response = nlp_client.analyze_entities(document=document, encoding_type=language_v1.EncodingType.UTF8)
+
+        # collect location spans
+        locations = []
+        for entity in response.entities:
+            if entity.type_ == language_v1.Entity.Type.LOCATION:
+                for mention in entity.mentions:
+                    start = mention.text.begin_offset
+                    end = start + len(mention.text.content)
+                    locations.append((start, end))
+
+        # sort and remove
+        locations.sort(reverse=True)
+        for start, end in locations:
+            text = text[:start] + text[end:]
+
+    except Exception as e:
+        print(f"NLP error: {e}")
     return text
 
-# function to tokenize text using the DistilBERT tokenizer
-def tokenize_text(text):
-    # tokenize text with padding/truncation to max_length=128
-    tokens = tokenizer(text, padding="max_length", truncation=True, max_length=128, return_tensors="pt")
-    # return a flattened list of token ids
-    return tokens["input_ids"].squeeze().tolist()
+def load_and_tokenize(csv_path, split_name):
+    df = pd.read_csv(csv_path)
+    df["text"] = df["text"].astype(str).str.replace('"', '', regex=False)
 
-# define a label mapping: convert disaster string labels to numeric values
-label_mapping = {"wildfire": 0, "hurricane": 1, "earthquake": 2}
+    clean_texts = []
+    edited_count = 0
 
-# list of disaster keywords to search for in the filename
-disaster_keywords = list(label_mapping.keys())
+    print(f"Cleaning entities for {split_name}...")
+    for text in tqdm(df["text"], desc=f"Cleaning {split_name}"):
+        cleaned = remove_location_entities(text)
+        if cleaned != text:
+            edited_count += 1
+        clean_texts.append(cleaned)
 
-# process each TSV file in the input directory
-for fileName in os.listdir(inputDir):
-    if not fileName.endswith(".tsv"):
-        continue
+    df["clean_text"] = clean_texts
+    labels = df["label"].map(label_map).tolist()
+    encodings = tokenizer(df["clean_text"].tolist(), padding="max_length", truncation=True, max_length=128, return_tensors="pt")
 
-    # determine disaster type from the filename (case-insensitive)
-    file_lower = fileName.lower()
-    disaster_type = None
-    for keyword in disaster_keywords:
-        if keyword in file_lower:
-            disaster_type = keyword
-            break
+    print(f"{split_name}: {edited_count} out of {len(df)} tweets had location data removed ({edited_count/len(df)*100:.2f}%)")
+    return TensorDataset(encodings["input_ids"], encodings["attention_mask"], torch.tensor(labels))
 
-    if disaster_type is None:
-        print(f"Skipping {fileName} as no disaster type was found in its name.")
-        continue
+# tokenize and save
+train_dataset = load_and_tokenize(train_csv_path, "Train Set")
+val_dataset = load_and_tokenize(val_csv_path, "Validation Set")
 
-    filePath = os.path.join(inputDir, fileName)
-    print(f"Processing: {filePath} as {disaster_type}")
+torch.save(train_dataset, os.path.join(tensor_dir, "train_tensor_nolocation.pt"))
+torch.save(val_dataset, os.path.join(tensor_dir, "val_tensor_nolocation.pt"))
 
-    # read the TSV file (assumes tab-separated values)
-    df = pd.read_csv(filePath, delimiter="\t")
-
-    # check for expected columns
-    if not {"tweet_id", "tweet_text", "class_label"}.issubset(df.columns):
-        print(f"Skipping {fileName} - required columns not found.")
-        continue
-
-    # clean the tweet text
-    df["cleaned_tweet"] = df["tweet_text"].apply(clean_text)
-
-    # tokenize the cleaned tweet text; store token ids as a list of ints
-    df["tokenized"] = df["cleaned_tweet"].apply(tokenize_text)
-
-    # overwrite the class_label with the disaster type from the filename (ensuring lowercase)
-    df["class_label"] = disaster_type.lower()
-    # map string labels to numeric values using the label_mapping
-    df["label"] = df["class_label"].map(label_mapping)
-
-    # convert the tokenized column into a tensor (list of ints per tweet)
-    input_ids = torch.tensor(df["tokenized"].tolist())
-    # create an attention mask: non-zero tokens are marked with 1
-    attention_masks = (input_ids != 0).long()
-    # convert labels to a tensor
-    labels = torch.tensor(df["label"].tolist())
-
-    # create a TensorDataset from input_ids, attention_masks, and labels
-    dataset = TensorDataset(input_ids, attention_masks, labels)
-
-    # define the output file path, changing the extension from .tsv to .pt
-    output_file = os.path.join(outputDir, fileName.replace(".tsv", ".pt"))
-    torch.save(dataset, output_file)
-    print(f"Saved tensor dataset to {output_file} (Total samples: {len(dataset)})")
-
-print("Processing complete. All files saved in the SelectiveTensors folder.")
+print("\nLocation-removed tensors saved:")
+print(f"Train Tensor: {len(train_dataset)} samples")
+print(f"Val Tensor: {len(val_dataset)} samples")
